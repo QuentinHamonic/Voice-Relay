@@ -1,14 +1,11 @@
 package com.example.voicerelay.client;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 
+import com.example.voicerelay.audio.AudioFrame;
 import com.example.voicerelay.audio.AudioSettings;
 import com.example.voicerelay.audio.Microphone;
 import com.example.voicerelay.audio.Speaker;
@@ -20,33 +17,25 @@ public class VoiceClient {
 
     private static final int SECONDS = 3;
 
-    public static void main(String[] args) throws LineUnavailableException, IOException {
-        int totalBytes = (int) (AudioSettings.SAMPLE_RATE * AudioSettings.BYTES_PER_SAMPLE * SECONDS);
-        byte[] recording = new byte[totalBytes];
+    public static void main(String[] args) throws LineUnavailableException {
+        int frameCount = SECONDS * 1000 / AudioSettings.MS_PER_FRAME;
+        List<AudioFrame> frames = new ArrayList<>();
 
-        System.out.println("Recording : 3s...");
+        System.out.println("Capturing " + frameCount + " frames...");
         try (Microphone microphone = new Microphone()) {
-            int position = 0;
-            while (position < totalBytes) {
-                byte[] chunk = microphone.readFrame();
-                int toCopy = Math.min(chunk.length, totalBytes - position);
-                System.arraycopy(chunk, 0, recording, position, toCopy);
-                position += toCopy;
+            for (int sequence = 0; sequence < frameCount; sequence++) {
+                frames.add(AudioFrame.forSequence(sequence, microphone.readFrame()));
             }
         }
 
-        System.out.println("Listen...");
+        System.out.println("First frame: " + frames.get(0));
+        System.out.println(frames.get(1));
+        System.out.println("Replaying frame by frame...");
         try (Speaker speaker = new Speaker()) {
-            speaker.play(recording);
+            for (AudioFrame frame : frames) {
+                speaker.play(frame.getPcm());
+            }
         }
-
-        File file = new File("record.wav");
-        long sampleCount = recording.length / AudioSettings.BYTES_PER_SAMPLE;
-        try (AudioInputStream stream = new AudioInputStream(
-                new ByteArrayInputStream(recording), AudioSettings.format(), sampleCount)) {
-            AudioSystem.write(stream, AudioFileFormat.Type.WAVE, file);
-        }
-        System.out.println("Saved: " + file.getAbsolutePath());
     }
 
 }
