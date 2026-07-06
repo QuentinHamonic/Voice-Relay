@@ -1,11 +1,12 @@
 package com.example.voicerelay.codec;
 
+/** The µ-law codec (G.711): each 16-bit sample becomes 8 bits (2x compression, lossy). */
 public class MuLawCodec implements Codec {
 
     public static final byte ID = 1;
 
-    private static final int BIAS = 0x84;
-    private static final int CLIP = 32635;
+    private static final int BIAS = 0x84;    // guarantees a top bit even for silence
+    private static final int CLIP = 32635;   // max magnitude that fits once BIAS is added
 
     @Override
     public byte getId() {
@@ -35,8 +36,9 @@ public class MuLawCodec implements Codec {
         return pcm;
     }
 
+    /** A µ-law byte -> a 16-bit sample (the inverse of encodeSample). */
     static short decodeSample(byte mu) {
-        int value = ~mu & 0xFF;
+        int value = ~mu & 0xFF; // re-invert the bits
         int sign = value & 0x80;
         int exponent = (value >> 4) & 0x07;
         int mantissa = value & 0x0F;
@@ -47,6 +49,7 @@ public class MuLawCodec implements Codec {
         return (short) (sign != 0 ? -sample : sample);
     }
 
+    /** A 16-bit sample -> a µ-law byte: sign + exponent (segment) + mantissa (detail). */
     static byte encodeSample(short pcm) {
         int value = pcm;
         int sign = (value < 0) ? 0x80 : 0x00;
@@ -58,14 +61,14 @@ public class MuLawCodec implements Codec {
         }
         value += BIAS;
 
-        int exponent = 7;
+        int exponent = 7; // position of the highest set bit -> which segment
         for (int mask = 0x4000; (value & mask) == 0 && exponent > 0; exponent--) {
             mask >>= 1;
         }
 
-        int mantissa = (value >> (exponent + 3)) & 0x0F;
+        int mantissa = (value >> (exponent + 3)) & 0x0F; // detail within that segment
 
-        return (byte) ~(sign | (exponent << 4) | mantissa);
+        return (byte) ~(sign | (exponent << 4) | mantissa); // ~ : silence becomes 0xFF
     }
 
 }

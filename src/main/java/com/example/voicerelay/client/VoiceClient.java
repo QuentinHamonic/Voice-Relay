@@ -12,51 +12,36 @@ import com.example.voicerelay.audio.Speaker;
 import com.example.voicerelay.codec.Codec;
 import com.example.voicerelay.codec.MuLawCodec;
 import com.example.voicerelay.codec.PcmCodec;
+import com.example.voicerelay.protocole.InvalidPacketException;
+import com.example.voicerelay.protocole.Packet;
 
 /**
- * Entry point. Records 3s of mic, plays it back, and saves it to a .wav file.
+ * Voice relay client.
  */
 public class VoiceClient {
 
-    private static final int SECONDS = 3;
+    public static void main(String[] args) throws InvalidPacketException {
+        Packet packet = Packet.text(1234, "Salut !");
+        byte[] bytes = packet.toBytes();
 
-    public static void main(String[] args) throws LineUnavailableException {
-        int frameCount = SECONDS * 1000 / AudioSettings.MS_PER_FRAME;
-        List<AudioFrame> frames = new ArrayList<>();
+        System.out.println("Packet     : " + packet);
+        System.out.println("On the wire: " + toHex(bytes));
+        System.out.println("             └─ ver│type│codec│flags│──ssrc───│──seq────│──ts─────│payload...");
 
-        System.out.println("Speak! Capturing for " + SECONDS + " seconds...");
-        try (Microphone microphone = new Microphone()) {
-            for (int sequence = 0; sequence < frameCount; sequence++) {
-                frames.add(AudioFrame.forSequence(sequence, microphone.readFrame()));
-            }
-        }
-
-        Codec pcm = new PcmCodec();
-        Codec muLaw = new MuLawCodec();
-
-        System.out.println("1/2 -- raw PCM (" + encodedSize(frames, pcm) + " bytes)...");
-        playWith(frames, pcm);
-
-        System.out.println("2/2 -- mu-law (" + encodedSize(frames, muLaw) + " bytes, half as much)...");
-        playWith(frames, muLaw);
+        Packet reread = Packet.fromBytes(bytes);
+        System.out.println("Reread     : " + reread + " -> \"" + reread.getTextMessage() + "\"");
+        System.out.println(packet.equals(reread) ? "Round-trip OK." : "PROBLEM!");
     }
 
-    private static void playWith(List<AudioFrame> frames, Codec codec) throws LineUnavailableException {
-        try (Speaker speaker = new Speaker()) {
-            for (AudioFrame frame : frames) {
-                byte[] encoded = codec.encode(frame.getPcm());
-                byte[] restored = codec.decode(encoded);
-                speaker.play(restored);
+    static String toHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < bytes.length; i++) {
+            sb.append(String.format("%02x", bytes[i]));
+            if (i == 0 || i == 1 || i == 2 || i == 3 || i == 7 || i == 11 || i == 15) {
+                sb.append('|');
             }
         }
-    }
-
-    private static int encodedSize(List<AudioFrame> frames, Codec codec) {
-        int total = 0;
-        for (AudioFrame frame : frames) {
-            total += codec.encode(frame.getPcm()).length;
-        }
-        return total;
+        return sb.toString();
     }
 
 }
