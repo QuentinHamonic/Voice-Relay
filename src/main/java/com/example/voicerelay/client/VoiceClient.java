@@ -1,8 +1,6 @@
 package com.example.voicerelay.client;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.Socket;
 
 import javax.sound.sampled.LineUnavailableException;
 
@@ -14,8 +12,9 @@ import com.example.voicerelay.codec.MuLawCodec;
 
 import com.example.voicerelay.protocole.Packet;
 import com.example.voicerelay.server.RelayServer;
+import com.example.voicerelay.transport.WebSocketConnection;
 
-/** Voice relay client. Captures the mic and sends packets over TCP. */
+/** Voice relay client. Captures the mic and sends packets over WebSocket. */
 public class VoiceClient {
 
     private static final int SECONDS = 10;
@@ -26,8 +25,7 @@ public class VoiceClient {
         int ssrc = 1;
 
         System.out.println("Connecting to " + host + " -- speak for " + SECONDS + " seconds...");
-        try (Socket socket = new Socket(host, RelayServer.PORT);
-                DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+        try (WebSocketConnection connection = WebSocketConnection.toServer(host, RelayServer.PORT);
                 Microphone microphone = new Microphone()) {
 
             int frameCount = SECONDS * 1000 / AudioSettings.MS_PER_FRAME;
@@ -37,12 +35,7 @@ public class VoiceClient {
                 Packet packet = Packet.audio(ssrc, sequence,
                         sequence * AudioSettings.SAMPLES_PER_FRAME,
                         codec.getId(), encoded);
-
-                // Framing: send the length first, then the bytes, so the
-                // receiver knows where each packet ends in the TCP stream.
-                byte[] bytes = packet.toBytes();
-                output.writeInt(bytes.length);
-                output.write(bytes);
+                connection.sendBinary(packet.toBytes());
             }
         }
         System.out.println("Transmission complete.");

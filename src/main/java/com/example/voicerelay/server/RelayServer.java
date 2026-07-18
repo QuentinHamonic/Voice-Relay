@@ -1,9 +1,9 @@
 package com.example.voicerelay.server;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 import javax.sound.sampled.LineUnavailableException;
 
@@ -12,35 +12,41 @@ import com.example.voicerelay.codec.Codec;
 import com.example.voicerelay.codec.MuLawCodec;
 import com.example.voicerelay.protocole.InvalidPacketException;
 import com.example.voicerelay.protocole.Packet;
+import com.example.voicerelay.transport.WebSocketConnection;
+import com.example.voicerelay.transport.WebSocketFrame;
 
-/** Minimal relay: accepts one TCP sender and plays its voice. */
+/** Minimal relay: accepts one WebSocket client and plays its voice (echoes text). */
 public class RelayServer {
+
     public static final int PORT = 9600;
 
-    public static void main(String[] args) throws IOException, LineUnavailableException, InvalidPacketException {
+    public static void main(String[] args) throws IOException, LineUnavailableException {
         Codec codec = new MuLawCodec();
 
-        System.out.println("Waiting for a sender on port " + PORT + "...");
-        try (ServerSocket serverSocket = new ServerSocket(PORT);
-                Socket socket = serverSocket.accept(); // blocks until a sender connects
-                DataInputStream input = new DataInputStream(socket.getInputStream());
-                Speaker speaker = new Speaker()) {
-            System.out.println("Connected: " + socket.getRemoteSocketAddress());
-            while (true) {
-                // Framing: TCP is a stream with no message boundaries, so we read
-                // the length first, then exactly that many bytes.
-                int size;
-                try {
-                    size = input.readInt();
-                } catch (IOException endOfStream) {
-                    break; // sender hung up: normal end
+        System.out.println("WebSocket relay server on ws://localhost:" + PORT + "/radio");
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            Socket socket = serverSocket.accept();
+            try (WebSocketConnection connection = WebSocketConnection.fromClient(socket);
+                    Speaker speaker = new Speaker()) {
+                System.out.println("Connected: " + connection.getRemoteAddress());
+                while (true) {
+                    WebSocketFrame.Frame frame = connection.receive();
+                    if (frame.getOpcode() == WebSocketFrame.OPCODE_TEXT) {
+                        String text = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                        System.out.println("   received (text): " + text);
+                        connection.sendText(text);
+                    } else {
+                        try {
+                            Packet packet = Packet.fromBytes(frame.getPayload());
+                            speaker.play(codec.decode(packet.getPayload()));
+                        } catch (InvalidPacketException rejected) {
+                            System.out.println("   invalid packet: " + rejected.getMessage());
+                        }
+                    }
                 }
-                byte[] bytes = new byte[size];
-                input.readFully(bytes); // readFully waits for ALL bytes (unlike read)
-                Packet packet = Packet.fromBytes(bytes);
-                speaker.play(codec.decode(packet.getPayload()));
             }
-            System.out.println("Sender disconnected.");
+        } catch (IOException endOfStream) {
+            System.out.println("Client disconnected.");
         }
     }
 }
