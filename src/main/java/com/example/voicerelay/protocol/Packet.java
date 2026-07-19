@@ -1,4 +1,4 @@
-package com.example.voicerelay.protocole;
+package com.example.voicerelay.protocol;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

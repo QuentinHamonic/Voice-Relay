@@ -10,8 +10,8 @@ import javax.sound.sampled.LineUnavailableException;
 import com.example.voicerelay.audio.Speaker;
 import com.example.voicerelay.codec.Codec;
 import com.example.voicerelay.codec.MuLawCodec;
-import com.example.voicerelay.protocole.InvalidPacketException;
-import com.example.voicerelay.protocole.Packet;
+import com.example.voicerelay.protocol.InvalidPacketException;
+import com.example.voicerelay.protocol.Packet;
 import com.example.voicerelay.transport.WebSocketConnection;
 import com.example.voicerelay.transport.WebSocketFrame;
 

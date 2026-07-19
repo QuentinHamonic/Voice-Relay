@@ -1,4 +1,4 @@
-package com.example.voicerelay.protocole;
+package com.example.voicerelay.protocol;
 
 /** Thrown when received bytes don't form a valid packet. */
 public class InvalidPacketException extends Exception {

@@ -10,7 +10,7 @@ import com.example.voicerelay.audio.Microphone;
 import com.example.voicerelay.codec.Codec;
 import com.example.voicerelay.codec.MuLawCodec;
 
-import com.example.voicerelay.protocole.Packet;
+import com.example.voicerelay.protocol.Packet;
 import com.example.voicerelay.server.RelayServer;
 import com.example.voicerelay.transport.WebSocketConnection;
 

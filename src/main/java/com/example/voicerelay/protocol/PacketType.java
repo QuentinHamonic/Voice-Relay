@@ -1,4 +1,4 @@
-package com.example.voicerelay.protocole;
+package com.example.voicerelay.protocol;
 
 /** The three kinds of packet. The code (one byte) is what travels on the wire. */
 public enum PacketType {
