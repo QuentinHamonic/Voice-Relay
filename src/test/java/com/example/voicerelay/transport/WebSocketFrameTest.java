@@ -1,4 +1,4 @@
-package com.example.voicerelay;
+package com.example.voicerelay.transport;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
