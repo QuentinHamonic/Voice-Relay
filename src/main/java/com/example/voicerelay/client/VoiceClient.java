@@ -25,7 +25,7 @@ public class VoiceClient {
         int ssrc = 1;
 
         System.out.println("Connecting to " + host + " -- speak for " + SECONDS + " seconds...");
-        try (WebSocketConnection connection = WebSocketConnection.toServer(host, RelayServer.PORT);
+        try (WebSocketConnection connection = WebSocketConnection.toServer(host, RelayServer.DEFAULT_PORT);
                 Microphone microphone = new Microphone()) {
 
             int frameCount = SECONDS * 1000 / AudioSettings.MS_PER_FRAME;
