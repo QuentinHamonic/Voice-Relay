@@ -1,5 +1,6 @@
 package com.example.voicerelay.server;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,15 @@ public class Room {
     }
 
     public void broadcast(Packet packet, int senderSsrc) {
+        for (ConnectedClient member : members.values()) {
+            if (member.getSsrc() == senderSsrc) {
+                continue;
+            }
+            try {
+                member.send(packet);
+            } catch (IOException memberUnreachable) {
 
+            }
+        }
     }
 }
