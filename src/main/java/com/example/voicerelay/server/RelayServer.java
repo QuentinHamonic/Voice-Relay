@@ -27,7 +27,8 @@ public class RelayServer {
     public static void main(String[] args) throws IOException {
         int port = (args.length > 0) ? Integer.parseInt(args[0]) : DEFAULT_PORT;
         RelayServer server = new RelayServer(port);
-        System.out.println("Voice Relay -- relay on ws://0.0.0.0" + server.getPort() + "/radio");
+        System.out.println("Voice Relay -- relay on ws://0.0.0.0:" + server.getPort() + "/radio");
+        server.start();
     }
 
     public int getPort() {
