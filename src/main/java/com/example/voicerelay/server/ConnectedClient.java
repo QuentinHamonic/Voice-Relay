@@ -2,6 +2,7 @@ package com.example.voicerelay.server;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
 
 import com.example.voicerelay.protocol.InvalidPacketException;
 import com.example.voicerelay.protocol.Packet;
@@ -67,6 +68,11 @@ public class ConnectedClient implements Runnable {
                 break;
             case AUDIO:
             case TEXT:
+                if (packet.getSsrc() != ssrc) {
+                    System.out.println(nickname + " annonced ssrc " + packet.getSsrc() + " instead of " + ssrc
+                            + ": ignored (impersonation?)");
+                    return;
+                }
                 if (room != null) {
                     room.broadcast(packet, ssrc);
                 }
@@ -86,6 +92,38 @@ public class ConnectedClient implements Runnable {
                 reply("WELCOME " + ssrc);
                 System.out.println(nickname + " -> ssrc " + ssrc);
                 break;
+            case "JOIN":
+                if (ssrc == 0) {
+                    reply("ERROR say HELLO first");
+                    return;
+                }
+                leaveRoom();
+                room = server.getOrCreateRoom(arguments.isEmpty() ? "general" : arguments);
+                List<ConnectedClient> existingMembers = room.getMembers();
+                for (ConnectedClient member : existingMembers) {
+                    reply("PRESENT " + member.getSsrc() + " " + member.getNickname());
+                }
+                room.join(this);
+                reply("JOIN-OK " + room.getName() + " " + existingMembers.size());
+                room.broadcast(Packet.command(SERVER_SSRC, "ARRIVED " + ssrc + " " + nickname), ssrc);
+                System.out.println(nickname + " joined \"" + room.getName() + "\"");
+                break;
+
+            case "WHO":
+                if (room == null) {
+                    reply("ERROR join a romm first (JOIN)");
+                    return;
+                }
+                StringBuilder list = new StringBuilder("LIST");
+                for (ConnectedClient member : room.getMembers()) {
+                    list.append(" ").append(member.getNickname());
+                }
+                reply(list.toString());
+                break;
+
+            case "QUIT":
+                throw new IOException("QUIT requested");
+
             default:
                 reply("ERROR unknown command: " + verb);
         }
@@ -98,6 +136,7 @@ public class ConnectedClient implements Runnable {
     private void leaveRoom() {
         if (room != null) {
             room.leave(ssrc);
+            room.broadcast(Packet.command(SERVER_SSRC, "LEFT " + ssrc + " " + nickname), ssrc);
             room = null;
         }
     }
