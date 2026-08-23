@@ -4,8 +4,6 @@ Encrypted voice relay chat by rooms.
 
 The goal is to provide a relay server able to route audio streams between multiple clients grouped into rooms, with encryption of the exchanges.
 
-> ⚠️ Work in progress, built step by step. The client captures the microphone, encodes it (µ-law), packetizes it, and sends it over TCP to a relay server that plays it back. WebSocket, multi-room relay, and encryption are not implemented yet.
-
 ## Requirements
 
 - JDK 21
