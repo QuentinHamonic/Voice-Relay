@@ -1,6 +1,6 @@
 # Voice Relay
 
-Encrypted voice relay chat by rooms.
+Voice relay chat by rooms.
 
 The goal is to provide a relay server able to route audio streams between multiple clients grouped into rooms, with encryption of the exchanges.
 
